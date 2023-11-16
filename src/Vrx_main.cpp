@@ -9,6 +9,7 @@
   #include <WiFi.h>
 #endif
 
+#include <FastLED.h>
 
 #include "msp.h"
 #include "msptypes.h"
@@ -42,7 +43,7 @@
 
 /////////// DEFINES ///////////
 
-#define BINDING_TIMEOUT     30000
+#define BINDING_TIMEOUT     1000
 #define NO_BINDING_TIMEOUT  120000
 #define BINDING_LED_PAUSE   1000
 
@@ -87,9 +88,28 @@ device_t *ui_devices[] = {
 esp_now_peer_info_t peerInfo;
 #endif
 
+#define NUM_LEDS 32
+#define LED_PIN 2
+#define LED_UPDATE_INTERVAL 10
+
+#define SPEED 1
+
+// The starting hue of the LED string
+uint8_t hue = 0;
+uint8_t sat = 255;
+uint8_t val = 0;
+uint8_t speed = SPEED;
+
+// The hue increment for each LED
+uint8_t hueStep = 10;
+uint8_t valStep = 30;
+
+
 /////////// CLASS OBJECTS ///////////
 
 MSP msp;
+CRGB leds[NUM_LEDS];
+uint32_t lastLEDUpdate = 0;
 
 ELRS_EEPROM eeprom;
 VrxBackpackConfig config;
@@ -347,7 +367,7 @@ void checkIfInBindingMode()
   uint8_t bootCounter = config.GetBootCount();
   bootCounter++;
 
-  if (bootCounter > 2)
+  if (bootCounter >= 10) // 10 sub-second boots
   {
     resetBootCounter();
 
@@ -436,6 +456,12 @@ void setup()
     connectionState = running;
   }
 
+  // Initialise LEDs
+  FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, NUM_LEDS)
+    .setCorrection(TypicalLEDStrip);
+  FastLED.clear();
+  FastLED.show();
+
   vrxModule.Init();
   #if defined(HDZERO_BACKPACK)
     Serial.begin(VRX_UART_BAUD);
@@ -449,6 +475,26 @@ void loop()
 
   devicesUpdate(now);
   vrxModule.Loop(now);
+
+  // Update the LEDs
+  if (now - lastLEDUpdate > LED_UPDATE_INTERVAL)
+  {
+    speed = SPEED;
+    for (int i = 0; i < NUM_LEDS / 2; i++)
+    {
+      uint8_t ledHue = hue + i * hueStep;
+      uint8_t ledVal = val + i * valStep;
+      leds[i].setHSV(ledHue, sat, sin8(ledVal));
+    }
+    // Mirror the LEDs to the other side
+    for (int i = 0; i < NUM_LEDS / 2; i++)
+      leds[NUM_LEDS - i - 1] = leds[i];
+    FastLED.show();
+    hue += speed;
+    val += (speed * 5);
+    lastLEDUpdate = now;
+  }
+
 
   #if defined(PLATFORM_ESP8266) || defined(PLATFORM_ESP32)
     // If the reboot time is set and the current time is past the reboot time then reboot.
