@@ -1,4 +1,4 @@
-import subprocess, os
+import subprocess, os, gzip
 
 def do_upload(elrs_bin_target, upload_addr, isstm, env):
     bootloader_target = None
@@ -60,7 +60,6 @@ def on_upload(source, target, env):
                 bootloader_file = flag.split("=")[1]
                 bootloader_target = os.path.join((env.get('PROJECT_DIR')), bootloader_file)
 
-    pio_target = target[0].name
     firmware_path = str(source[0])
     bin_path = os.path.dirname(firmware_path)
     elrs_bin_target = os.path.join(bin_path, 'firmware.elrs')
@@ -68,4 +67,12 @@ def on_upload(source, target, env):
         elrs_bin_target = os.path.join(bin_path, 'firmware.bin')
         if not os.path.exists(elrs_bin_target):
             raise Exception("No valid binary found!")
-    do_upload(elrs_bin_target, pio_target, upload_addr, isstm, env)
+        
+    elrs_bin_target_gz = elrs_bin_target + '.gz'
+        
+    # Gzip the binary to counter "not enough space" error
+    with open(elrs_bin_target, 'rb') as f_in:
+        with gzip.open(elrs_bin_target_gz, 'wb') as f_out:
+            f_out.writelines(f_in)
+
+    do_upload(elrs_bin_target_gz, upload_addr, isstm, env)
