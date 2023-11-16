@@ -90,7 +90,7 @@ esp_now_peer_info_t peerInfo;
 
 #define NUM_LEDS 32
 #define LED_PIN 2
-#define LED_UPDATE_INTERVAL 10
+#define LED_UPDATE_INTERVAL 16
 
 #define SPEED 1
 
@@ -104,12 +104,13 @@ uint8_t speed = SPEED;
 uint8_t hueStep = 10;
 uint8_t valStep = 30;
 
+uint32_t lastLEDUpdate = 0;
+bool vrxRecording = false;
 
 /////////// CLASS OBJECTS ///////////
 
 MSP msp;
 CRGB leds[NUM_LEDS];
-uint32_t lastLEDUpdate = 0;
 
 ELRS_EEPROM eeprom;
 VrxBackpackConfig config;
@@ -239,6 +240,9 @@ void ProcessMSPPacket(mspPacket_t *packet)
       uint8_t highByte = packet->readByte();
       uint16_t delay = lowByte | highByte << 8;
       vrxModule.SetRecordingState(state, delay);
+
+      // Set the recordingState global
+      vrxRecording = (bool)state;
     }
     break;
   case MSP_ELRS_SET_OSD:
@@ -479,19 +483,33 @@ void loop()
   // Update the LEDs
   if (now - lastLEDUpdate > LED_UPDATE_INTERVAL)
   {
-    speed = SPEED;
-    for (int i = 0; i < NUM_LEDS / 2; i++)
+    // Update the LEDs
+    if (vrxRecording)
     {
-      uint8_t ledHue = hue + i * hueStep;
-      uint8_t ledVal = val + i * valStep;
-      leds[i].setHSV(ledHue, sat, sin8(ledVal));
+      // If we're recording, flash the LEDs red
+      speed = 6;
+      for (int i = 0; i < NUM_LEDS; i++)
+        leds[i].setHSV(0, sat, sin8(hue * 1.5));
     }
-    // Mirror the LEDs to the other side
-    for (int i = 0; i < NUM_LEDS / 2; i++)
-      leds[NUM_LEDS - i - 1] = leds[i];
+    else
+    {
+      // Otherwise, cycle the LEDs through the colour spectrum
+      speed = SPEED;
+      for (int i = 0; i < NUM_LEDS / 2; i++)
+      {
+        uint8_t ledHue = hue + i * hueStep;
+        uint8_t ledVal = val + i * valStep;
+        leds[i].setHSV(ledHue, sat, sin8(ledVal));
+      }
+
+      // Mirror the LEDs to the other side
+      for (int i = 0; i < NUM_LEDS / 2; i++)
+        leds[NUM_LEDS - i - 1] = leds[i];
+    }
     FastLED.show();
     hue += speed;
     val += (speed * 5);
+
     lastLEDUpdate = now;
   }
 
