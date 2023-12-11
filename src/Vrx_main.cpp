@@ -1,12 +1,12 @@
 #include <Arduino.h>
 
 #if defined(PLATFORM_ESP8266)
-  #include <espnow.h>
-  #include <ESP8266WiFi.h>
+#include <espnow.h>
+#include <ESP8266WiFi.h>
 #elif defined(PLATFORM_ESP32)
-  #include <esp_now.h>
-  #include <esp_wifi.h>
-  #include <WiFi.h>
+#include <esp_now.h>
+#include <esp_wifi.h>
+#include <WiFi.h>
 #endif
 
 #include <FastLED.h>
@@ -26,39 +26,39 @@
 #include "devLED.h"
 
 #ifdef RAPIDFIRE_BACKPACK
-  #include "rapidfire.h"
+#include "rapidfire.h"
 #elif defined(RX5808_BACKPACK)
-  #include "rx5808.h"
+#include "rx5808.h"
 #elif defined(STEADYVIEW_BACKPACK)
-  #include "steadyview.h"
+#include "steadyview.h"
 #elif defined(FUSION_BACKPACK)
-  #include "fusion.h"
+#include "fusion.h"
 #elif defined(HDZERO_BACKPACK)
-  #include "hdzero.h"
+#include "hdzero.h"
 #elif defined(SKYZONE_MSP_BACKPACK)
-  #include "skyzone_msp.h"
+#include "skyzone_msp.h"
 #elif defined(ORQA_BACKPACK)
-  #include "orqa.h"
+#include "orqa.h"
 #endif
 
 /////////// DEFINES ///////////
 
-#define BINDING_TIMEOUT     5000 // 5 seconds
-#define BINDING_BOOT_COUNT  10 // Reboot into binding mode after 10 sub-5-second boots
-#define NO_BINDING_TIMEOUT  120000
-#define BINDING_LED_PAUSE   1000
+#define BINDING_TIMEOUT 5000  // 5 seconds
+#define BINDING_BOOT_COUNT 10 // Reboot into binding mode after 10 sub-5-second boots
+#define NO_BINDING_TIMEOUT 120000
+#define BINDING_LED_PAUSE 1000
 
 #if !defined(VRX_BOOT_DELAY)
-  #define VRX_BOOT_DELAY  0
+#define VRX_BOOT_DELAY 0
 #endif
 
 #if !defined(VRX_UART_BAUD)
-  #define VRX_UART_BAUD  460800
+#define VRX_UART_BAUD 460800
 #endif
 
 // LED defines
 #define NUM_LEDS 32
-#define LED_PIN 2
+#define LED_PIN 12
 #define LED_UPDATE_INTERVAL 16
 
 #define SPEED 3
@@ -81,12 +81,12 @@ uint32_t lastSentRequest = 0;
 
 device_t *ui_devices[] = {
 #ifdef PIN_LED
-  &LED_device,
+    &LED_device,
 #endif
 #ifdef PIN_BUTTON
-  &Button_device,
+    &Button_device,
 #endif
-  &WIFI_device,
+    &WIFI_device,
 };
 
 #if defined(PLATFORM_ESP32)
@@ -116,19 +116,19 @@ ELRS_EEPROM eeprom;
 VrxBackpackConfig config;
 
 #ifdef RAPIDFIRE_BACKPACK
-  Rapidfire vrxModule;
+Rapidfire vrxModule;
 #elif defined(RX5808_BACKPACK)
-  RX5808 vrxModule;
+RX5808 vrxModule;
 #elif defined(STEADYVIEW_BACKPACK)
-  SteadyView vrxModule;
+SteadyView vrxModule;
 #elif defined(FUSION_BACKPACK)
-  Fusion vrxModule;
+Fusion vrxModule;
 #elif defined(HDZERO_BACKPACK)
-  HDZero vrxModule(&Serial);
+HDZero vrxModule(&Serial);
 #elif defined(SKYZONE_MSP_BACKPACK)
-  SkyzoneMSP vrxModule(&Serial);
+SkyzoneMSP vrxModule(&Serial);
 #elif defined(ORQA_BACKPACK)
-  Orqa vrxModule;
+Orqa vrxModule;
 #endif
 
 /////////// FUNCTION DEFS ///////////
@@ -151,13 +151,13 @@ void RebootIntoWifi()
 
 // espnow on-receive callback
 #if defined(PLATFORM_ESP8266)
-void OnDataRecv(uint8_t * mac_addr, uint8_t *data, uint8_t data_len)
+void OnDataRecv(uint8_t *mac_addr, uint8_t *data, uint8_t data_len)
 #elif defined(PLATFORM_ESP32)
-void OnDataRecv(const uint8_t * mac_addr, const uint8_t *data, int data_len)
+void OnDataRecv(const uint8_t *mac_addr, const uint8_t *data, int data_len)
 #endif
 {
   DBGLN("ESP NOW DATA:");
-  for(int i = 0; i < data_len; i++)
+  for (int i = 0; i < data_len; i++)
   {
     DBG("%x", data[i]); // Debug prints
     DBG(",");
@@ -168,15 +168,12 @@ void OnDataRecv(const uint8_t * mac_addr, const uint8_t *data, int data_len)
       // Finished processing a complete packet
       // Only process packets from a bound MAC address
       if (connectionState == binding ||
-            (
-            firmwareOptions.uid[0] == mac_addr[0] &&
-            firmwareOptions.uid[1] == mac_addr[1] &&
-            firmwareOptions.uid[2] == mac_addr[2] &&
-            firmwareOptions.uid[3] == mac_addr[3] &&
-            firmwareOptions.uid[4] == mac_addr[4] &&
-            firmwareOptions.uid[5] == mac_addr[5]
-            )
-          )
+          (firmwareOptions.uid[0] == mac_addr[0] &&
+           firmwareOptions.uid[1] == mac_addr[1] &&
+           firmwareOptions.uid[2] == mac_addr[2] &&
+           firmwareOptions.uid[3] == mac_addr[3] &&
+           firmwareOptions.uid[4] == mac_addr[4] &&
+           firmwareOptions.uid[5] == mac_addr[5]))
       {
         gotInitialPacket = true;
         ProcessMSPPacket(msp.getReceivedPacket());
@@ -220,7 +217,8 @@ void ProcessMSPPacket(mspPacket_t *packet)
     if (packet->payload[0] < 48) // Standard 48 channel VTx table size e.g. A, B, E, F, R, L
     {
       // cache changes here, to be handled outside this callback, in the main loop
-      cachedIndex = packet->payload[0];;
+      cachedIndex = packet->payload[0];
+      ;
       sendChannelChangesToVrx = true;
     }
     else
@@ -255,11 +253,13 @@ void ProcessMSPPacket(mspPacket_t *packet)
     break;
   case MSP_ELRS_BACKPACK_CRSF_TLM:
     DBGV("Processing MSP_ELRS_BACKPACK_CRSF_TLM type %x\n", packet->payload[1]);
-    if (packet->payloadSize < 4) {
+    if (packet->payloadSize < 4)
+    {
       DBGLN("CRSF_TLM packet too short")
       break;
     }
-    switch (packet->payload[2]) {
+    switch (packet->payload[2])
+    {
     case CRSF_FRAMETYPE_BATTERY_SENSOR:
       vrxModule.SendBatteryTelemetry(packet->payload);
       break;
@@ -277,27 +277,27 @@ void ProcessMSPPacket(mspPacket_t *packet)
 void SetupEspNow()
 {
   if (esp_now_init() != 0)
-    {
-      DBGLN("Error initializing ESP-NOW");
-      turnOffLED();
-      ESP.restart();
-    }
+  {
+    DBGLN("Error initializing ESP-NOW");
+    turnOffLED();
+    ESP.restart();
+  }
 
-    #if defined(PLATFORM_ESP8266)
-      esp_now_set_self_role(ESP_NOW_ROLE_COMBO);
-      esp_now_add_peer(firmwareOptions.uid, ESP_NOW_ROLE_COMBO, 1, NULL, 0);
-    #elif defined(PLATFORM_ESP32)
-      memcpy(peerInfo.peer_addr, firmwareOptions.uid, 6);
-      peerInfo.channel = 0;
-      peerInfo.encrypt = false;
-      if (esp_now_add_peer(&peerInfo) != ESP_OK)
-      {
-        DBGLN("ESP-NOW failed to add peer");
-        return;
-      }
-    #endif
+#if defined(PLATFORM_ESP8266)
+  esp_now_set_self_role(ESP_NOW_ROLE_COMBO);
+  esp_now_add_peer(firmwareOptions.uid, ESP_NOW_ROLE_COMBO, 1, NULL, 0);
+#elif defined(PLATFORM_ESP32)
+  memcpy(peerInfo.peer_addr, firmwareOptions.uid, 6);
+  peerInfo.channel = 0;
+  peerInfo.encrypt = false;
+  if (esp_now_add_peer(&peerInfo) != ESP_OK)
+  {
+    DBGLN("ESP-NOW failed to add peer");
+    return;
+  }
+#endif
 
-    esp_now_register_recv_cb(OnDataRecv);
+  esp_now_register_recv_cb(OnDataRecv);
 }
 
 void SetSoftMACAddress()
@@ -305,9 +305,9 @@ void SetSoftMACAddress()
   DBGLN("EEPROM MAC = ");
   for (int i = 0; i < 6; i++)
   {
-    #ifndef MY_UID
+#ifndef MY_UID
     memcpy(firmwareOptions.uid, config.GetGroupAddress(), 6);
-    #endif
+#endif
     DBG("%x", firmwareOptions.uid[i]); // Debug prints
     DBG(",");
   }
@@ -320,12 +320,12 @@ void SetSoftMACAddress()
   WiFi.begin("network-name", "pass-to-network", 1);
   WiFi.disconnect();
 
-  // Soft-set the MAC address to the passphrase UID for binding
-  #if defined(PLATFORM_ESP8266)
-    wifi_set_macaddr(STATION_IF, firmwareOptions.uid);
-  #elif defined(PLATFORM_ESP32)
-    esp_wifi_set_mac(WIFI_IF_STA, firmwareOptions.uid);
-  #endif
+// Soft-set the MAC address to the passphrase UID for binding
+#if defined(PLATFORM_ESP8266)
+  wifi_set_macaddr(STATION_IF, firmwareOptions.uid);
+#elif defined(PLATFORM_ESP32)
+  esp_wifi_set_mac(WIFI_IF_STA, firmwareOptions.uid);
+#endif
 }
 
 void RequestVTXPacket()
@@ -334,7 +334,7 @@ void RequestVTXPacket()
   packet.reset();
   packet.makeCommand();
   packet.function = MSP_ELRS_REQU_VTX_PKT;
-  packet.addByte(0);  // empty byte
+  packet.addByte(0); // empty byte
 
   blinkLED();
   sendMSPViaEspnow(&packet);
@@ -357,7 +357,7 @@ void sendMSPViaEspnow(mspPacket_t *packet)
     return;
   }
 
-  esp_now_send(firmwareOptions.uid, (uint8_t *) &nowDataOutput, packetSize);
+  esp_now_send(firmwareOptions.uid, (uint8_t *)&nowDataOutput, packetSize);
 }
 
 void resetBootCounter()
@@ -375,12 +375,12 @@ void checkIfInBindingMode()
   {
     resetBootCounter();
 
-    #ifdef MY_UID
+#ifdef MY_UID
     RebootIntoWifi();
-    #else
+#else
     connectionState = binding;
     bindingStart = millis();
-    #endif
+#endif
   }
   else
   {
@@ -404,27 +404,27 @@ bool BindingExpired(uint32_t now)
 // Called from core's user_rf_pre_init() function (which is called by SDK) before setup()
 RF_PRE_INIT()
 {
-    // Set whether the chip will do RF calibration or not when power up.
-    // I believe the Arduino core fakes this (byte 114 of phy_init_data.bin)
-    // to be 1, but the TX power calibration can pull over 300mA which can
-    // lock up receivers built with a underspeced LDO (such as the EP2 "SDG")
-    // Option 2 is just VDD33 measurement
-    #if defined(RF_CAL_MODE)
-    system_phy_set_powerup_option(RF_CAL_MODE);
-    #else
-    system_phy_set_powerup_option(2);
-    #endif
+// Set whether the chip will do RF calibration or not when power up.
+// I believe the Arduino core fakes this (byte 114 of phy_init_data.bin)
+// to be 1, but the TX power calibration can pull over 300mA which can
+// lock up receivers built with a underspeced LDO (such as the EP2 "SDG")
+// Option 2 is just VDD33 measurement
+#if defined(RF_CAL_MODE)
+  system_phy_set_powerup_option(RF_CAL_MODE);
+#else
+  system_phy_set_powerup_option(2);
+#endif
 }
 #endif
 
 void setup()
 {
-  #if !defined(HDZERO_BACKPACK)
-    // Serial.begin() seems to prevent the HDZ VRX from booting
-    // If we're not on HDZ, init serial early for debug msgs
-    // Otherwise, delay it till the end of setup
-    Serial.begin(VRX_UART_BAUD);
-  #endif
+#if !defined(HDZERO_BACKPACK)
+  // Serial.begin() seems to prevent the HDZ VRX from booting
+  // If we're not on HDZ, init serial early for debug msgs
+  // Otherwise, delay it till the end of setup
+  Serial.begin(VRX_UART_BAUD);
+#endif
 
   options_init();
 
@@ -434,9 +434,9 @@ void setup()
 
   devicesInit(ui_devices, ARRAY_SIZE(ui_devices));
 
-  #ifdef DEBUG_ELRS_WIFI
-    config.SetStartWiFiOnBoot(true);
-  #endif
+#ifdef DEBUG_ELRS_WIFI
+  config.SetStartWiFiOnBoot(true);
+#endif
 
   if (config.GetStartWiFiOnBoot())
   {
@@ -462,14 +462,14 @@ void setup()
 
   // Initialise LEDs
   FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, NUM_LEDS);
-    // .setCorrection(TypicalLEDStrip);
+  // .setCorrection(TypicalLEDStrip);
   FastLED.clear();
   FastLED.show();
 
   vrxModule.Init();
-  #if defined(HDZERO_BACKPACK)
-    Serial.begin(VRX_UART_BAUD);
-  #endif
+#if defined(HDZERO_BACKPACK)
+  Serial.begin(VRX_UART_BAUD);
+#endif
   DBGLN("Setup completed");
 }
 
@@ -506,9 +506,9 @@ void loop()
         // ledVal = 255;
         leds[i].setHSV(ledHue, sat, dim8_lin(ledVal));
 
-      // Mirror the LEDs to the other side
-      for (int i = 0; i < NUM_LEDS / 2; i++)
-        leds[NUM_LEDS - i - 1] = leds[i];
+        // Mirror the LEDs to the other side
+        for (int i = 0; i < NUM_LEDS / 2; i++)
+          leds[NUM_LEDS - i - 1] = leds[i];
       }
     }
 
@@ -518,14 +518,14 @@ void loop()
     lastLEDUpdate = now;
   }
 
-
-  #if defined(PLATFORM_ESP8266) || defined(PLATFORM_ESP32)
-    // If the reboot time is set and the current time is past the reboot time then reboot.
-    if (rebootTime != 0 && now > rebootTime) {
-      turnOffLED();
-      ESP.restart();
-    }
-  #endif
+#if defined(PLATFORM_ESP8266) || defined(PLATFORM_ESP32)
+  // If the reboot time is set and the current time is past the reboot time then reboot.
+  if (rebootTime != 0 && now > rebootTime)
+  {
+    turnOffLED();
+    ESP.restart();
+  }
+#endif
 
   if (connectionState == wifiUpdate)
   {
