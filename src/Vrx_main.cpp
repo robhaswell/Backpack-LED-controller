@@ -69,6 +69,7 @@
 
 // Read the VL53L0X every 200ms
 #define SENSOR_UPDATE_INTERVAL 200
+#define LED_ACTIVE_DISTANCE 50 // mm
 
 /////////// GLOBALS ///////////
 
@@ -117,6 +118,7 @@ bool vrxRecording = false;
 // Set up the sensor
 VL53L0X sensor;
 uint32_t sensorLastUpdate = 0;
+bool ledsActive = false;
 
 /////////// CLASS OBJECTS ///////////
 
@@ -483,7 +485,7 @@ void setup()
 #endif
 
   // Initialise the VL53L0X
-  Wire.begin();
+  Wire.begin(4, 5);
 
   sensor.setTimeout(500);
   if (!sensor.init())
@@ -514,6 +516,8 @@ void loop()
     }
     else
     {
+      // Activate the LEDs if the distance is less than LED_ACTIVE_DISTANCE
+      ledsActive = range < LED_ACTIVE_DISTANCE;
       DBGLN("Distance: %d mm", range)
     }
   }
@@ -550,7 +554,11 @@ void loop()
       }
     }
 
-    FastLED.show();
+    // Only show the LEDs if they're active
+    if (ledsActive)
+      FastLED.show();
+    else
+      FastLED.clear(true);
 
     theta += speed;
     lastLEDUpdate = now;
