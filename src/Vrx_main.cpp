@@ -43,7 +43,8 @@
 
 /////////// DEFINES ///////////
 
-#define BINDING_TIMEOUT     1000
+#define BINDING_TIMEOUT     5000 // 5 seconds
+#define BINDING_BOOT_COUNT  10 // Reboot into binding mode after 10 sub-5-second boots
 #define NO_BINDING_TIMEOUT  120000
 #define BINDING_LED_PAUSE   1000
 
@@ -370,7 +371,7 @@ void checkIfInBindingMode()
   uint8_t bootCounter = config.GetBootCount();
   bootCounter++;
 
-  if (bootCounter >= 10) // 10 sub-second boots
+  if (bootCounter >= 4) // 10 sub-5-second boots
   {
     resetBootCounter();
 
@@ -566,7 +567,7 @@ void loop()
   }
 
 #if !defined(NO_AUTOBIND)
-  // Power cycle must be done within 30s.  Long timeout to allow goggles to boot and shutdown correctly e.g. Orqa.
+  // Power cycle must be done within 5s.  Long timeout to allow goggles to boot and shutdown correctly e.g. Orqa.
   if (now > BINDING_TIMEOUT && config.GetBootCount() > 0)
   {
     DBGLN("resetBootCounter...");
