@@ -41,6 +41,9 @@
 #include "orqa.h"
 #endif
 
+#include <Wire.h>
+#include <VL53L0X.h>
+
 /////////// DEFINES ///////////
 
 #define BINDING_TIMEOUT 5000  // 5 seconds
@@ -63,6 +66,10 @@
 
 #define SPEED 3
 #define PATTERN_WIDTH 20
+
+// Read the VL53L0X every 200ms
+#define SENSOR_UPDATE_INTERVAL 200
+
 /////////// GLOBALS ///////////
 
 uint8_t backpackVersion[] = {LATEST_VERSION, 0};
@@ -106,6 +113,10 @@ uint8_t patternWidth = 20;
 // The last time the LEDs were updated
 uint32_t lastLEDUpdate = 0;
 bool vrxRecording = false;
+
+// Set up the sensor
+VL53L0X sensor;
+uint32_t sensorLastUpdate = 0;
 
 /////////// CLASS OBJECTS ///////////
 
@@ -470,6 +481,18 @@ void setup()
 #if defined(HDZERO_BACKPACK)
   Serial.begin(VRX_UART_BAUD);
 #endif
+
+  // Initialise the VL53L0X
+  Wire.begin();
+
+  sensor.setTimeout(500);
+  if (!sensor.init())
+  {
+    DBGLN("Failed to detect and initialize VL53L0X!");
+  }
+  // Start continuous back-to-back mode every 200ms
+  sensor.startContinuous(200);
+
   DBGLN("Setup completed");
 }
 
@@ -479,6 +502,21 @@ void loop()
 
   devicesUpdate(now);
   vrxModule.Loop(now);
+
+  // Update the sensor
+  if (now - sensorLastUpdate > SENSOR_UPDATE_INTERVAL)
+  {
+    sensorLastUpdate = now;
+    uint16_t range = sensor.readRangeContinuousMillimeters();
+    if (sensor.timeoutOccurred())
+    {
+      DBGLN("Sensor timeout");
+    }
+    else
+    {
+      DBGLN("Distance: %d mm", range)
+    }
+  }
 
   // Update the LEDs
   if (now - lastLEDUpdate > LED_UPDATE_INTERVAL)
